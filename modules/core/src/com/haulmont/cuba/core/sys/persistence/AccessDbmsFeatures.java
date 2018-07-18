@@ -7,7 +7,8 @@ import java.util.Map;
 /**
  * DbmsFeatures implementation for Access Library Db.
  */
-// TODO this is an auto-generated sample suitable for MS SQLServer
+// TODO - Fix DB Veatures for MS ACCESS
+// PASS #1 - ok
 @SuppressWarnings("unused")
 public class AccessDbmsFeatures implements DbmsFeatures {
 

@@ -45,6 +45,7 @@ dependencies {
 }
 
 def hsql = 'org.hsqldb:hsqldb:2.2.9'
+def access = 'net.sf.ucanaccess:ucanaccess:4.0.4'
 
 configure([globalModule, coreModule, guiModule, webModule]) {
     apply(plugin: 'java')
@@ -82,9 +83,8 @@ configure(coreModule) {
     dependencies {
         compile(globalModule)
         provided(servletApi)
-        jdbc(hsql)
-        testRuntime(hsql)
-        compile('net.sf.ucanaccess:ucanaccess:4.0.4')
+        jdbc(access)
+        testRuntime(access)
     }
 
     task cleanConf(description: 'Cleans up conf directory') {
@@ -104,18 +104,18 @@ configure(coreModule) {
     }
 
     task createDb(dependsOn: assembleDbScripts, description: 'Creates local database', type: CubaDbCreation) {
-        dbms = 'hsql'
-        host = 'localhost'
-        dbName = 'test1'
-        dbUser = 'sa'
+        dbms = 'access'
+        host = ''
+        dbName = 'c:/db/library.accdb'
+        dbUser = ''
         dbPassword = ''
     }
 
     task updateDb(dependsOn: assembleDbScripts, description: 'Updates local database', type: CubaDbUpdate) {
-        dbms = 'hsql'
-        host = 'localhost'
-        dbName = 'test1'
-        dbUser = 'sa'
+        dbms = 'access'
+        host = ''
+        dbName = 'c:/db/library.accdb'
+        dbUser = ''
         dbPassword = ''
     }
 }

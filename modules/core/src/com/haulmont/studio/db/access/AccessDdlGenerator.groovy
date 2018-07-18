@@ -8,7 +8,7 @@ import groovy.sql.Sql
  * It provides a set of properties and methods for generation of database init and update scripts,
  * and for creating model from an existing database.
  */
-// TODO this is an auto-generated sample suitable for MS SQLServer 2012
+// TODO - fix DDL generator helper class for MS ACCESS
 @SuppressWarnings("GroovyUnusedDeclaration")
 class AccessDdlGenerator {
 

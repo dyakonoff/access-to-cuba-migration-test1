@@ -7,7 +7,7 @@ import java.sql.SQLException
  * This class is used by Studio at design time for working with Access Library Db.
  * It defines custom database properties that are needed to configure projects using Access Library Db.
  */
-// TODO this is an auto-generated sample suitable for MS SQLServer
+// TODO - fix DB properties for MS ACCESS
 @SuppressWarnings("GroovyUnusedDeclaration")
 class AccessDbProperties {
 
@@ -38,7 +38,7 @@ class AccessDbProperties {
      * It is set to the 'Database user' field when a user select this database type.
      */
     String getUser() {
-        return 'sa'
+        return ''
     }
 
     /**
@@ -47,21 +47,21 @@ class AccessDbProperties {
      * It is set to the 'Database password' field when a user select this database type.
      */
     String getPassword() {
-        return 'saPass1'
+        return '    '
     }
 
     /**
      * Fully qualified name of the JDBC driver.
      */
     String getDriver() {
-        return 'net.sourceforge.jtds.jdbc.Driver'
+        return 'net.ucanaccess.jdbc.UcanaccessDriver'
     }
 
     /**
-     * Starting part of JDBC connection URL connection before host.
+     * Starting part of JDBC connection URL connection before host (path).
      */
     String getUrlPrefix() {
-        return 'jdbc:jtds:sqlserver://'
+        return 'jdbc:ucanaccess://'
     }
 
     /**
@@ -75,7 +75,7 @@ class AccessDbProperties {
      * </ul>
      */
     String getJdbcDriverDependency() {
-        return 'net.sourceforge.jtds:jtds:1.3.1'
+        return 'net.sf.ucanaccess:ucanaccess:4.0.41'
     }
 
     /**
@@ -157,7 +157,8 @@ class AccessDbProperties {
      * @return connection URL
      */
     String createDbUrl(String host, String dbName, String connectionParams) {
-        return "${getUrlPrefix()}${host}/${dbName}${connectionParams}"
+        // return "${getUrlPrefix()}${host}/${dbName}${connectionParams}"
+        return "${getUrlPrefix()}${dbName}${connectionParams}"
     }
 
     /**
