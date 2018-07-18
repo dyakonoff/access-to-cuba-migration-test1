@@ -31,7 +31,7 @@ public class AccessDbmsFeatures implements DbmsFeatures {
 
     @Override
     public String getTimeStampType() {
-        return "DATETIME";
+        return "TIMESTAMP";
     }
 
     @Nullable
@@ -48,6 +48,7 @@ public class AccessDbmsFeatures implements DbmsFeatures {
 
     @Override
     public String getUniqueConstraintViolationPattern() {
+        // TODO - ???
         return "with unique index '(.+)'";
     }
 
