@@ -3,8 +3,7 @@ package com.haulmont.cuba.core.sys.persistence;
 /**
  * SequenceSupport implementation for Access Library Db.
  */
-// TODO - MS ACCESS doesn't support sequences. So trowing exceptions so far...
-// PASS #1 - a stub that throws exceptions
+// TODO: MS ACCESS doesn't support sequences. So trowing exceptions so far. PASS 1 - a stub that throws exceptions
 @SuppressWarnings("unused")
 public class AccessSequenceSupport implements SequenceSupport {
 

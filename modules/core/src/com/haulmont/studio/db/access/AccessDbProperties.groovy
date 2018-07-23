@@ -7,7 +7,7 @@ import java.sql.SQLException
  * This class is used by Studio at design time for working with Access Library Db.
  * It defines custom database properties that are needed to configure projects using Access Library Db.
  */
-// TODO - fix DB properties for MS ACCESS
+// TODO: fix DB properties for MS ACCESS
 @SuppressWarnings("GroovyUnusedDeclaration")
 class AccessDbProperties {
 
@@ -29,7 +29,7 @@ class AccessDbProperties {
      * It is used only in Studio to display the database type to the user.
      */
     String getCaption() {
-        return 'Access Library Db'
+        return 'Microsoft Access'
     }
 
     /**
@@ -47,7 +47,7 @@ class AccessDbProperties {
      * It is set to the 'Database password' field when a user select this database type.
      */
     String getPassword() {
-        return '    '
+        return ''
     }
 
     /**
@@ -75,7 +75,7 @@ class AccessDbProperties {
      * </ul>
      */
     String getJdbcDriverDependency() {
-        return 'net.sf.ucanaccess:ucanaccess:4.0.41'
+        return 'net.sf.ucanaccess:ucanaccess:4.0.4'
     }
 
     /**

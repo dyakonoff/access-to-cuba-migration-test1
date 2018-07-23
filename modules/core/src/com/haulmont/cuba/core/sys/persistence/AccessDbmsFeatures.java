@@ -7,15 +7,15 @@ import java.util.Map;
 /**
  * DbmsFeatures implementation for Access Library Db.
  */
-// TODO - Fix DB Veatures for MS ACCESS
-// PASS #1 - ok
+// TODO: Fix DB Features for MS ACCESS, PASS 1 - OK
 @SuppressWarnings("unused")
 public class AccessDbmsFeatures implements DbmsFeatures {
 
     @Override
     public Map<String, String> getJpaParameters() {
+        // TODO: ??? what shall be done?
         HashMap<String, String> params = new HashMap<>();
-        params.put("eclipselink.target-database", "com.haulmont.cuba.core.sys.persistence.CubaSQLServerPlatform");
+        params.put("eclipselink.target-database", "com.haulmont.cuba.core.sys.persistence.CubaAccessPlatform");
         return params;
     }
 
@@ -48,7 +48,7 @@ public class AccessDbmsFeatures implements DbmsFeatures {
 
     @Override
     public String getUniqueConstraintViolationPattern() {
-        // TODO - ???
+        // TODO: ???
         return "with unique index '(.+)'";
     }
 

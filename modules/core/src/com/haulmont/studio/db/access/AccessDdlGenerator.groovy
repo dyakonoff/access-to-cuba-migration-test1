@@ -8,7 +8,7 @@ import groovy.sql.Sql
  * It provides a set of properties and methods for generation of database init and update scripts,
  * and for creating model from an existing database.
  */
-// TODO - fix DDL generator helper class for MS ACCESS
+// TODO: fix DDL generator helper class for MS ACCESS
 @SuppressWarnings("GroovyUnusedDeclaration")
 class AccessDdlGenerator {
 
@@ -21,16 +21,17 @@ class AccessDdlGenerator {
      * Map of attribute's Java type to an SQL column type.
      * <p>
      * The key is a simple class name, e.g. 'Boolean', 'byte[]', the value is column type, e.g. 'tinyint', 'image'.
+     * @see <a href="https://msdn.microsoft.com/en-us/library/office/ff193793.aspx">ACCESS Data Types</a>
      */
     Map<String, String> types = [
-            'Boolean' : 'tinyint',
-            'byte[]' : 'image',
-            'Character' : 'char',
+            'Boolean' : 'bit',
+            'byte[]' : 'binary',
+            'Character' : 'character',
             'Date' : 'datetime',
             'BigDecimal' : 'decimal',
-            'Double' : 'double precision',
+            'Double' : 'double',
             'Integer' : 'integer',
-            'Long' : 'bigint',
+            'Long' : 'decimal',
             'String' : 'varchar',
             'UUID' : 'uniqueidentifier'
     ]
@@ -67,9 +68,9 @@ class AccessDdlGenerator {
     Map<String, String> defaultValues = [
             'Boolean' : '0',
             'ByteArray' : "''",
-            'Date' : 'convert (date, current_timestamp)',
-            'DateTime' : 'current_timestamp',
-            'Time' : 'convert (time, current_timestamp)',
+            'Date' : "'=Now()'",
+            'DateTime' : "'=Now()'",
+            'Time' : "'=Now()'",
             'BigDecimal' : '0',
             'Double' : '0',
             'Integer' : '0',
@@ -89,48 +90,71 @@ class AccessDdlGenerator {
      * <li>For a String attribute, a developer has changed type in the database to 'nvarchar'. When Studio generates scripts,
      * it sees that the default 'varchar' type and 'nvarchar' are synonyms, and does not generate updates for the column.
      * </ol>
+     * @see <a href="https://msdn.microsoft.com/en-us/library/office/ff195814.aspx">ACCESS type synonyms</a>
+     * <p>
+     * @see <a href="https://msdn.microsoft.com/en-us/library/office/ff193793.aspx">ACCESS Data Types</a>
      */
     List<List<String>> typeSynonyms = [
-            ['tinyint', 'boolean', 'bit'],
-            ['image', 'binary varying', 'varbinary', 'binary varying', 'varbinary(max)', 'timestamp', 'rowversion', 'binary'],
-            ['datetime', 'datetime2', 'datetimeoffset', 'smalldatetime', 'date', 'time'],
-            ['character', 'char', 'nchar'],
-            ['decimal', 'dec', 'numeric', 'money', 'smallmoney'],
-            ['double precision', 'float', 'real'],
-            ['int4', 'int', 'integer', 'int identity', 'smallint'],
-            ['bigint', 'long', 'long identity', 'bigint identity'],
-            ['character varying', 'varchar', 'nvarchar', 'text', 'varchar(max,', 'ntext'],
-            ['uniqueidentifier', 'uuid']
+            // 1 byte long booleans and integers
+            ['tinyint', 'integer1', 'byte', 'bit', 'boolean', 'logical', 'logical1', 'yesno'],
+            // binary objects and OLE objects
+            ['binary', 'varbinary', 'binary varying', 'bit varying', 'varbinary(max)', 'image',
+             'longbinary', 'general', 'oleobject'],
+            // stored as 8 bytes doubles
+            ['datetime', 'smalldatetime', 'date', 'time'],
+            // 0 - 255 chars, 2 bytes per character
+            ['char', 'alphanumeric', 'character', 'string', 'varchar', 'character varying', 'nchar',
+             'national character', 'national char', 'national character varying', 'national char varying',
+             'test(max)'],
+            // decimal - 17 bytes & money - 8 bytes
+            ['decimal', 'dec', 'numeric', 'money', 'smallmoney', 'currency'],
+            // 4 abd 8 bytes float numbers
+            ['float', 'double', 'float8', 'ieeedouble', 'number', 'real', 'single', 'float4', 'ieeesingle'],
+            // 2 and 4 bytes ints
+            ['integer', 'long', 'int', 'integer4', 'smallint', 'short', 'integer2'],
+            // 0 to 2.14 GB length, 2 bytes per character
+            ['text', 'longtext', 'longchar', 'memo', 'note', 'ntex'],
+            ['uniqueidentifier', 'guid']
     ]
 
     /**
-     * DBMS reserved words.
+     * MS Access reserved words.
+     * The following list includes all words reserved by the Microsoft Access database engine for use in SQL statements.
+     * The words in the list that are not in all uppercase letters are also reserved by other applications.
+     * <p>
+     * Words followed by ### (in comments) are reserved but currently have no meaning in the context of
+     * a Microsoft Access SQL statement (for example, Level and TableID).
+     * @see <a href="https://msdn.microsoft.com/en-us/library/office/ff845663.aspx">ACCESS reserved words</a>
      */
     List<String> reservedKeywords = [
-            'ABSOLUTE', 'ACTION', 'ADA', 'ADD', 'ALL', 'ALLOCATE',
-            'ALTER', 'AND', 'ANY', 'ARE', 'AS', 'ASC', 'ASSERTION', 'AT', 'AUTHORIZATION', 'AVG', 'BEGIN', 'BETWEEN',
-            'BIT', 'BIT_LENGTH', 'BOTH', 'BY', 'CASCADE', 'CASCADED', 'CASE', 'CAST', 'CATALOG', 'CHAR', 'CHAR_LENGTH',
-            'CHARACTER', 'CHARACTER_LENGTH', 'CHECK', 'CLOSE', 'COALESCE', 'COLLATE', 'COLLATION', 'COLUMN', 'COMMIT',
-            'CONNECT', 'CONNECTION', 'CONSTRAINT', 'CONSTRAINTS', 'CONTINUE', 'CONVERT', 'CORRESPONDING', 'COUNT',
-            'CREATE', 'CROSS', 'CURRENT', 'CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP', 'CURRENT_USER', 'CURSOR',
-            'DATE', 'DAY', 'DEALLOCATE', 'DEC', 'DECIMAL', 'DECLARE', 'DEFAULT', 'DEFERRABLE', 'DEFERRED', 'DELETE',
-            'DESC', 'DESCRIBE', 'DESCRIPTOR', 'DIAGNOSTICS', 'DISCONNECT', 'DISTINCT', 'DOMAIN', 'DOUBLE', 'DROP',
-            'ELSE', 'END', 'END-EXEC', 'ESCAPE', 'EXCEPT', 'EXCEPTION', 'EXEC', 'EXECUTE', 'EXISTS', 'EXTERNAL',
-            'EXTRACT', 'FALSE', 'FETCH', 'FIRST', 'FLOAT', 'FOR', 'FOREIGN', 'FORTRAN', 'FOUND', 'FROM', 'FULL', 'GET',
-            'GLOBAL', 'GO', 'GOTO', 'GRANT', 'GROUP', 'HAVING', 'HOUR', 'IDENTITY', 'IMMEDIATE', 'IN', 'INCLUDE',
-            'INDEX', 'INDICATOR', 'INITIALLY', 'INNER', 'INPUT', 'INSENSITIVE', 'INSERT', 'INT', 'INTEGER', 'INTERSECT',
-            'INTERVAL', 'INTO', 'IS', 'ISOLATION', 'JOIN', 'KEY', 'LANGUAGE', 'LAST', 'LEADING', 'LEFT', 'LEVEL',
-            'LIKE', 'LOCAL', 'LOWER', 'MATCH', 'MAX', 'MIN', 'MINUTE', 'MODULE', 'MONTH', 'NAMES', 'NATIONAL',
-            'NATURAL', 'NCHAR', 'NEXT', 'NO', 'NONE', 'NOT', 'NULL', 'NULLIF', 'NUMERIC', 'OCTET_LENGTH', 'OF', 'ON',
-            'ONLY', 'OPEN', 'OPTION', 'OR', 'ORDER', 'OUTER', 'OUTPUT', 'OVERLAPS', 'PAD', 'PARTIAL', 'PASCAL',
-            'POSITION', 'PRECISION', 'PREPARE', 'PRESERVE', 'PRIMARY', 'PRIOR', 'PRIVILEGES', 'PROCEDURE', 'PUBLIC',
-            'READ', 'REAL', 'REFERENCES', 'RELATIVE', 'RESTRICT', 'REVOKE', 'RIGHT', 'ROLLBACK', 'ROWS', 'SCHEMA',
-            'SCROLL', 'SECOND', 'SECTION', 'SELECT', 'SESSION', 'SESSION_USER', 'SET', 'SIZE', 'SMALLINT', 'SOME',
-            'SPACE', 'SQL', 'SQLCA', 'SQLCODE', 'SQLERROR', 'SQLSTATE', 'SQLWARNING', 'SUBSTRING', 'SUM', 'SYSTEM_USER',
-            'TABLE', 'TEMPORARY', 'THEN', 'TIME', 'TIMESTAMP', 'TIMEZONE_HOUR', 'TIMEZONE_MINUTE', 'TO', 'TRAILING',
-            'TRANSACTION', 'TRANSLATE', 'TRANSLATION', 'TRIM', 'TRUE', 'UNION', 'UNIQUE', 'UNKNOWN', 'UPDATE', 'UPPER',
-            'USAGE', 'USER', 'USING', 'VALUE', 'VALUES', 'VARCHAR', 'VARYING', 'VIEW', 'WHEN', 'WHENEVER', 'WHERE',
-            'WITH', 'WORK', 'WRITE', 'YEAR', 'ZONE'
+            'ABSOLUTE', 'ADD', 'ADMINDB', 'ALL', 'Alphanumeric', 'ALTER', 'ALTER TABLE', 'And', 'ANY', 'ARE',
+            'AS', 'AS', 'ASC', 'ASSERTION', 'AUTHORIZATION', 'AUTOINCREMENT', 'Avg', 'BEGIN', 'Between', 'BINARY',
+            'BIT', 'BIT_LENGTH', 'BOOLEAN', 'BOTH', 'BY', 'BYTE', 'CASCADE', 'CATALOG', 'CHAR', 'CHAR_LENGTH',
+            'CHARACTER', 'CHARACTER_LENGTH', 'CHECK', 'CLOSE', 'CLUSTERED', 'COALESCE', 'COLLATE', 'COLLATION',
+            'COLUMN', 'COMMIT', 'COMP', 'COMPRESSION', 'CONNECT', 'CONNECTION', 'CONSTRAINT', 'CONSTRAINTS',
+            'CONTAINER', 'CONTAINS', 'CONVERT', 'Count', 'COUNTER', 'CREATE', 'CURRENCY', 'CURRENT_DATE',
+            'CURRENT_TIME', 'CURRENT_TIMESTAMP', 'CURRENT_USER', 'CURSOR', 'DATABASE', 'DATE', 'DATETIME',
+            'DAY', 'DEC', 'DECIMAL', 'DECLARE', 'DELETE', 'DESC', 'DISALLOW', 'DISCONNECT', 'DISTINCT',
+            'DISTINCTROW', 'DOMAIN', 'DOUBLE', 'DROP', 'Eqv', 'EXCLUSIVECONNECT', 'EXEC', 'EXECUTE', 'EXISTS',
+            'EXTRACT', 'FALSE', 'FETCH', 'FIRST', 'FLOAT', 'FLOAT4', 'FLOAT8', 'FOREIGN', 'FROM', 'FROM',
+            'GENERAL', 'GRANT', 'GROUP', 'GUID', 'HAVING', 'HOUR', 'IDENTITY', 'IEEEDOUBLE', 'IEEESINGLE',
+            'IGNORE', 'IMAGE', 'Imp', 'IN', 'In', 'INDEX', 'INDEXCREATEDB', 'INNER', 'INPUT', 'INSENSITIVE',
+            'INSERT', 'INSERT INTO', 'INT', 'INTEGER', 'INTEGER1', 'INTEGER2', 'INTEGER4', 'INTERVAL', 'INTO',
+            'Is', 'ISOLATION', 'JOIN', 'KEY', 'LANGUAGE', 'LAST', 'LEFT', 'Level' /*###*/, 'Like', 'LOGICAL',
+            'LOGICAL1', 'LONG', 'LONGBINARY', 'LONGCHAR', 'LONGTEXT', 'LOWER', 'MATCH', 'Max', 'MEMO',
+            'Min', 'MINUTE', 'Mod', 'MONEY', 'MONTH', 'NATIONAL', 'NCHAR', 'NONCLUSTERED', 'Not', 'NTEXT',
+            'NULL', 'NUMBER', 'NUMERIC', 'NVARCHAR', 'OCTET_LENGTH', 'OLEOBJECT', 'ON', 'OPEN', 'OPTION',
+            'Or', 'ORDER', 'Outer' /*###*/, 'OUTPUT', 'OWNERACCESS', 'PAD', 'PARAMETERS', 'PARTIAL', 'PASSWORD',
+            'PERCENT', 'PIVOT', 'POSITION', 'PRECISION', 'PREPARE', 'PRIMARY', 'PRIVILEGES', 'PROC', 'PROCEDURE',
+            'PUBLIC', 'REAL', 'REFERENCES', 'RESTRICT', 'REVOKE', 'RIGHT', 'ROLLBACK', 'SCHEMA', 'SECOND',
+            'SELECT', 'SELECTSCHEMA', 'SELECTSECURITY', 'SET', 'SHORT', 'SINGLE', 'SIZE', 'SMALLDATETIME',
+            'SMALLINT', 'SMALLMONEY', 'SOME', 'SPACE', 'SQL', 'SQLCODE', 'SQLERROR', 'SQLSTATE', 'StDev',
+            'StDevP', 'STRING', 'SUBSTRING', 'Sum', 'SYSNAME', 'SYSTEM_USER', 'TABLE', 'TableID' /*###*/,
+            'TEMPORARY', 'TEXT', 'TIME', 'TIMESTAMP', 'TIMEZONE_HOUR', 'TIMEZONE_MINUTE', 'TINYINT', 'TO',
+            'TOP', 'TRAILING', 'TRANSACTION', 'TRANSFORM', 'TRANSLATE', 'TRANSLATION', 'TRIM', 'TRUE', 'UNION',
+            'UNIQUE', 'UNIQUEIDENTIFIER', 'UNKNOWN', 'UPDATE', 'UPDATEIDENTITY', 'UPDATEOWNER', 'UPDATESECURITY',
+            'UPPER', 'USAGE', 'USER', 'USING', 'VALUE', 'VALUES', 'Var', 'VARBINARY', 'VARCHAR', 'VarP',
+            'VARYING', 'VIEW', 'WHEN', 'WHENEVER', 'WHERE', 'WITH', 'WORK', 'Xor', 'YEAR', 'YESNO', 'ZONE'
     ]
 
     /**
