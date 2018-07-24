@@ -113,7 +113,7 @@ class AccessDdlGenerator {
             // 2 and 4 bytes ints
             ['integer', 'long', 'int', 'integer4', 'smallint', 'short', 'integer2'],
             // 0 to 2.14 GB length, 2 bytes per character
-            ['text', 'longtext', 'longchar', 'memo', 'note', 'ntex'],
+            ['text', 'longtext', 'longchar', 'memo', 'note', 'ntext'],
             ['uniqueidentifier', 'guid']
     ]
 
@@ -165,18 +165,21 @@ class AccessDdlGenerator {
      * 2147483647, but `mycol int(2147483647)` won't work.
      */
     List<String> noParameterTypes = [
-            "tinyint", "boolean", "image", "rowversion", "timestamp", "binary",
-            "datetime", "datetime2", "datetimeoffset", "smalldatetime", "date", "time",
-            "double precision", "float", "real", "int4", "int", "integer", "int identity",
-            "smallint", "bigint", "long", "long identity", "bigint identity", "uniqueidentifier", "uuid"
+            'tinyint', 'integer1', 'byte', 'bit', 'boolean', 'logical', 'logical1', 'yesno',
+            'datetime', 'smalldatetime', 'date', 'time',
+            'decimal', 'dec', 'numeric', 'money', 'smallmoney', 'currency',
+            'float', 'double', 'float8', 'ieeedouble', 'number', 'real', 'single', 'float4', 'ieeesingle',
+            'integer', 'long', 'int', 'integer4', 'smallint', 'short', 'integer2',
+            'uniqueidentifier', 'guid',
+            'image', 'longbinary', 'general', 'oleobject'
     ]
 
     /**
      * Columns of these types are filled in automatically by DBMS and not mapped to a Java type.
      */
     List<String> automaticallyGeneratedTypes = [
-            'rowversion',
-            'timestamp'
+            'counter',
+            'autoincrement'
     ]
 
     /**
@@ -192,6 +195,7 @@ class AccessDdlGenerator {
     }
 
     /**
+     * Access requires dropping FOREIGN KEY constraints before removing the table.
      * Returns the list of statements for removing constraints before dropping a table.
      * <p>
      * If the database removes constraints automatically, the method should return an empty list.
@@ -203,11 +207,11 @@ class AccessDdlGenerator {
      */
     List<String> getDropTableConstraintStatements(DatabaseMetaData metaData, String schema, String tableName) {
         List<String> result = []
-        String dbName = delegate.getMainDataStoreDatabaseName()
+        // String dbName = delegate.getMainDataStoreDatabaseName()
         def connection = delegate.getConnection()
         try {
             new Sql(connection).eachRow("select CONSTRAINT_NAME from INFORMATION_SCHEMA.TABLE_CONSTRAINTS " +
-                    "where CONSTRAINT_CATALOG = ? and TABLE_NAME = ? and CONSTRAINT_TYPE = 'FOREIGN KEY'",
+                    "where CONSTRAINT_CATALOG = 'PUBLIC' and TABLE_NAME = ? and CONSTRAINT_TYPE = 'FOREIGN KEY'",
                     [dbName, tableName]) { row ->
                 result.add(getDropConstraintStatement(tableName, row['CONSTRAINT_NAME'].toUpperCase()))
             }
@@ -229,14 +233,18 @@ class AccessDdlGenerator {
      * @return collection of index names
      */
     Collection<String> getColumnIndexNames(DatabaseMetaData metaData, String schema, String tableName, String columnName) {
+        // TODO: Fix this
         Set<String> indexes = new LinkedHashSet<>()
-        new Sql(metaData.getConnection()).eachRow("select distinct i.name, i.is_unique from sys.indexes i " +
-                "  join sys.index_columns ic on i.index_id = ic.index_id and ic.object_id = i.object_id " +
-                "  join sys.all_columns c on ic.column_id = c.column_id and c.object_id = ic.object_id " +
-                "  join sys.all_objects t on c.object_id = t.object_id and i.object_id = t.object_id " +
-                "where t.name = ? and c.name = ?", [tableName, columnName]) { row ->
-            String indexName = row['NAME'].toUpperCase()
-            boolean isUnique = row['IS_UNIQUE']
+        new Sql(metaData.getConnection()).eachRow(
+                "SELECT indexinfo.INDEX_NAME, indexinfo.NON_UNIQUE " +
+                "FROM INFORMATION_SCHEMA.SYSTEM_INDEXINFO  indexinfo " +
+                "  JOIN UCA_METADATA.COLUMNS_VIEW colview ON " +
+                "    indexinfo.TABLE_NAME = colview.ESCAPED_TABLE_NAME AND " +
+                "    indexinfo.COLUMN_NAME = colview.ESCAPED_COLUMN_NAME " +
+                "WHERE colview.TABLE_NAME = ? and colview.COLUMN_NAME = ?",
+                [tableName, columnName]) { row ->
+            String indexName = row['INDEX_NAME'].toUpperCase()
+            boolean isUnique = !row['NON_UNIQUE']
             if (isUnique != 1 || !indexName.startsWith(INDEX_PREFIX + delegate.getProjectNamespace().toUpperCase())) {
                 //unique index will be removed in generateUpdateIndex() method
                 indexes.add(indexName)
