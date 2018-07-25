@@ -233,7 +233,6 @@ class AccessDdlGenerator {
      * @return collection of index names
      */
     Collection<String> getColumnIndexNames(DatabaseMetaData metaData, String schema, String tableName, String columnName) {
-        // TODO: Fix this
         Set<String> indexes = new LinkedHashSet<>()
         new Sql(metaData.getConnection()).eachRow(
                 "SELECT indexinfo.INDEX_NAME, indexinfo.NON_UNIQUE " +
@@ -266,6 +265,7 @@ class AccessDdlGenerator {
      */
     Collection<String> getColumnConstraintNames(DatabaseMetaData metaData, String schema, String tableName,
                                                 String columnName) {
+        // TODO
         Set<String> constraints = new LinkedHashSet<>()
         String dbName = delegate.getMainDataStoreDatabaseName()
         new Sql(metaData.getConnection()).eachRow("select * from INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE " +
